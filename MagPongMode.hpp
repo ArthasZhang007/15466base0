@@ -16,7 +16,6 @@ namespace
 		float t = (float)rand() / RAND_MAX;
 		return l + (r - l) * t;
 	};
-	float getrand() { return getrand(0, 1); }
 }; // namespace
 /*
  * MagPongMode is a game mode that implements a single-player game of MagPong.
