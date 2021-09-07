@@ -7,7 +7,11 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <random>
-
+float getrand(float l, float r)
+{
+	float t = (float)rand() / RAND_MAX;
+	return l + (r - l) * t;
+};
 MagPongMode::MagPongMode()
 {
 	//set up rand

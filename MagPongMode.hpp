@@ -9,14 +9,6 @@
 #include <deque>
 
 #include <time.h>
-namespace
-{
-	float getrand(float l, float r)
-	{
-		float t = (float)rand() / RAND_MAX;
-		return l + (r - l) * t;
-	};
-}; // namespace
 /*
  * MagPongMode is a game mode that implements a single-player game of MagPong.
  */
