@@ -135,7 +135,24 @@ bool MagPongMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_si
 			(evt.motion.y + 0.5f) / window_size.y * -2.0f + 1.0f);
 		left_paddle.y = (clip_to_court * glm::vec3(clip_mouse, 1.0f)).y;
 	}
-
+	if (evt.type == SDL_KEYDOWN)
+	{
+		if (evt.key.keysym.sym == 102) //F
+		{
+			paddle_mode = 'F';
+			paddle_radius = glm::vec2(0.2f, 1.3f);
+		}
+		if (evt.key.keysym.sym == 105) //I
+		{
+			paddle_mode = 'I';
+			paddle_radius = glm::vec2(0.2f, 0.8f);
+		}
+		if (evt.key.keysym.sym == 110) //N
+		{
+			paddle_mode = 'N';
+			paddle_radius = glm::vec2(0.2f, 1.0f);
+		}
+	}
 	return false;
 }
 void MagPongMode::update(float elapsed)
@@ -190,10 +207,14 @@ void MagPongMode::update(float elapsed)
 		//if no overlap, no collision:
 		if (min.x > max.x || min.y > max.y)
 			return;
-
+		if (paddle_mode == 'F')
+			ball.v = ball.v * 1.05f;
+		if (paddle_mode == 'I')
+			ball.v = ball.v * 0.95f;
 		if (max.x - min.x > max.y - min.y)
 		{
 			//wider overlap in x => bounce in y direction:
+
 			if (ball.loc.y > paddle.y)
 			{
 				ball.loc.y = paddle.y + radius.y + ball_radius.y;
@@ -273,11 +294,6 @@ void MagPongMode::update(float elapsed)
 		}
 		//store fresh location at back of ball trail:
 		ball_trail.emplace_back(ball.loc, 0.0f);
-		std::cout<<trail_length<<std::endl;
-		if(ball_trail.size() > 2){
-			std::cout<<ball_trail[1].z<<std::endl;
-			std::cout<<ball_trail[0].z<<std::endl;
-		}
 		//trim any too-old locations from back of trail:
 		//NOTE: since trail drawing interpolates between points, only removes back element if second-to-back element is too old:
 		while (ball_trail.size() >= 2 && ball_trail[1].z > trail_length)
@@ -298,6 +314,11 @@ void MagPongMode::draw(glm::uvec2 const &drawable_size)
 		HEX_TO_U8VEC4(0xf2ad9488),
 		HEX_TO_U8VEC4(0xf2897288),
 		HEX_TO_U8VEC4(0xbacac088),
+	};
+	const std::vector<glm::u8vec4> paddle_colors = {
+		HEX_TO_U8VEC4(0xF7371888),
+		HEX_TO_U8VEC4(0x009dFF88),
+		HEX_TO_U8VEC4(0xf2ad9488),
 	};
 #undef HEX_TO_U8VEC4
 
@@ -334,55 +355,58 @@ void MagPongMode::draw(glm::uvec2 const &drawable_size)
 	draw_rectangle(left_paddle + s, paddle_radius, shadow_color);
 	draw_rectangle(right_paddle + s, ai_radius, shadow_color);
 
-	for(auto ball: balls)
+	for (auto ball : balls)
+	{
+		auto &ball_trail = ball.ball_trail;
 		draw_rectangle(ball.loc + s, ball_radius, shadow_color);
 
-	//ball's trail:
-	if (ball_trail.size() >= 2)
-	{
-		//start ti at second element so there is always something before it to interpolate from:
-		std::deque<glm::vec3>::iterator ti = ball_trail.begin() + 1;
-		//draw trail from oldest-to-newest:
-		constexpr uint32_t STEPS = 20;
-		//draw from [STEPS, ..., 1]:
-		for (uint32_t step = STEPS; step > 0; --step)
+		//ball's trail:
+		if (ball_trail.size() >= 2)
 		{
-			//time at which to draw the trail element:
-			float t = step / float(STEPS) * trail_length;
-			//advance ti until 'just before' t:
-			while (ti != ball_trail.end() && ti->z > t)
-				++ti;
-			//if we ran out of recorded tail, stop drawing:
-			if (ti == ball_trail.end())
-				break;
-			//interpolate between previous and current trail point to the correct time:
-			glm::vec3 a = *(ti - 1);
-			glm::vec3 b = *(ti);
-			glm::vec2 at = (t - a.z) / (b.z - a.z) * (glm::vec2(b) - glm::vec2(a)) + glm::vec2(a);
-
-			//look up color using linear interpolation:
-			//compute (continuous) index:
-			float c = (step - 1) / float(STEPS - 1) * trail_colors.size();
-			//split into an integer and fractional portion:
-			int32_t ci = int32_t(std::floor(c));
-			float cf = c - ci;
-			//clamp to allowable range (shouldn't ever be needed but good to think about for general interpolation):
-			if (ci < 0)
+			//start ti at second element so there is always something before it to interpolate from:
+			std::deque<glm::vec3>::iterator ti = ball_trail.begin() + 1;
+			//draw trail from oldest-to-newest:
+			constexpr uint32_t STEPS = 20;
+			//draw from [STEPS, ..., 1]:
+			for (uint32_t step = STEPS; step > 0; --step)
 			{
-				ci = 0;
-				cf = 0.0f;
-			}
-			if (ci > int32_t(trail_colors.size()) - 2)
-			{
-				ci = int32_t(trail_colors.size()) - 2;
-				cf = 1.0f;
-			}
-			//do the interpolation (casting to floating point vectors because glm::mix doesn't have an overload for u8 vectors):
-			glm::u8vec4 color = glm::u8vec4(
-				glm::mix(glm::vec4(trail_colors[ci]), glm::vec4(trail_colors[ci + 1]), cf));
+				//time at which to draw the trail element:
+				float t = step / float(STEPS) * trail_length;
+				//advance ti until 'just before' t:
+				while (ti != ball_trail.end() && ti->z > t)
+					++ti;
+				//if we ran out of recorded tail, stop drawing:
+				if (ti == ball_trail.end())
+					break;
+				//interpolate between previous and current trail point to the correct time:
+				glm::vec3 a = *(ti - 1);
+				glm::vec3 b = *(ti);
+				glm::vec2 at = (t - a.z) / (b.z - a.z) * (glm::vec2(b) - glm::vec2(a)) + glm::vec2(a);
 
-			//draw:
-			draw_rectangle(at, ball_radius, color);
+				//look up color using linear interpolation:
+				//compute (continuous) index:
+				float c = (step - 1) / float(STEPS - 1) * trail_colors.size();
+				//split into an integer and fractional portion:
+				int32_t ci = int32_t(std::floor(c));
+				float cf = c - ci;
+				//clamp to allowable range (shouldn't ever be needed but good to think about for general interpolation):
+				if (ci < 0)
+				{
+					ci = 0;
+					cf = 0.0f;
+				}
+				if (ci > int32_t(trail_colors.size()) - 2)
+				{
+					ci = int32_t(trail_colors.size()) - 2;
+					cf = 1.0f;
+				}
+				//do the interpolation (casting to floating point vectors because glm::mix doesn't have an overload for u8 vectors):
+				glm::u8vec4 color = glm::u8vec4(
+					glm::mix(glm::vec4(trail_colors[ci]), glm::vec4(trail_colors[ci + 1]), cf));
+
+				//draw:
+				draw_rectangle(at, ball_radius, color);
+			}
 		}
 	}
 
@@ -395,11 +419,18 @@ void MagPongMode::draw(glm::uvec2 const &drawable_size)
 	draw_rectangle(glm::vec2(0.0f, court_radius.y + wall_radius), glm::vec2(court_radius.x, wall_radius), fg_color);
 
 	//paddles:
-	draw_rectangle(left_paddle, paddle_radius, fg_color);
+	int k;
+	if (paddle_mode == 'F')
+		k = 0;
+	if (paddle_mode == 'I')
+		k = 1;
+	if (paddle_mode == 'N')
+		k = 2;
+	draw_rectangle(left_paddle, paddle_radius, paddle_colors[k]);
 	draw_rectangle(right_paddle, paddle_radius, fg_color);
 
 	//ball:
-	for(auto ball: balls)
+	for (auto ball : balls)
 		draw_rectangle(ball.loc, ball_radius, fg_color);
 
 	//scores:

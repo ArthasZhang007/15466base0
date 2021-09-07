@@ -1,8 +1,8 @@
-# (TODO: your game's title)
+Melting Pong
 
-Author: (TODO: your name)
+Author: Lingxi Zhang
 
-Design: (TODO: In two sentences or fewer, describe what is new and interesting about your game.)
+Design: Pong but with multiple balls and no actual opponent(pve), and you can switch to ice paddle(shorter paddle length but has the effect of slowing down balls), fire paddle(longer paddle length but has the debuff of speeding up balls), or just normal one.
 
 Screen Shot:
 
@@ -10,8 +10,14 @@ Screen Shot:
 
 How To Play:
 
-(TODO: describe the controls and (if needed) goals/strategy.)
+Use your mouse to control the paddle up or down.
 
-Sources: (TODO: list a source URL for any assets you did not create yourself. Make sure you have a license for the asset.)
+Press 'I': switch to ice mode, paddle becomes blue.
+Press 'F': switch to fire mode, paddle becomes red.
+Press 'N'(default): switch to normal modele, paddle becomes pink.
+
+Goal: survive as long as possible.
+
+External Sources: None
 
 This game was built with [NEST](NEST.md).

@@ -42,7 +42,8 @@ struct MagPongMode : Mode
 	glm::vec2 left_paddle = glm::vec2(-court_radius.x + 0.5f, 0.0f);
 	glm::vec2 right_paddle = glm::vec2(court_radius.x - 0.5f, 0.0f);
 
-	size_t num_balls = 3;
+	size_t num_balls = 5;
+	char paddle_mode = 'N';
 	struct boken
 	{
 		boken(glm::vec2 a, glm::vec2 b, std::deque<glm::vec3> lis) : loc(a), v(b), ball_trail(lis){};
